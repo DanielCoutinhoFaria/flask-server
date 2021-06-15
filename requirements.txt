@@ -3,6 +3,5 @@ sklearn
 pandas
 numpy
 gunicorn
-json
 joblib
 mysql.connector
