@@ -10,7 +10,7 @@ app = Flask(__name__)
 def hello_world():
     return 'HELLO DANI'
 
-mydb = mysql.connector.connect(
+'''mydb = mysql.connector.connect(
   host="freedb.tech",
   port=3306,
   user="freedbtech_etardata",
@@ -49,6 +49,6 @@ def prediction():
     prediction = loaded_model.predict(pred)
     result = {'azoto_total_em_Afluente_Bruto':request.form['azoto_total_em_Afluente_Bruto'], 'cqo_em_Efluente_Tratado': request.form['cqo_em_Efluente_Tratado'], 'sst_em_Afluente_Bruto':request.form['sst_em_Afluente_Bruto'], 'amonia_em_Efluente_Tratado': request.form['amonia_em_Efluente_Tratado'], 'ortofosfatos_em_Efluente_Tratado': request.form['ortofosfatos_em_Efluente_Tratado'], 'previsao': str(prediction[0])}
     return result
-
+'''
 if __name__ == '__main__':
     app.run()   
