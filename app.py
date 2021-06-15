@@ -127,7 +127,6 @@ def rules():
     rules = get_rules(loaded_model, dataframe_for_columns_name.columns, None)
     for r in rules:
         rules_array.append(r)
-    display(rules_array)
     return jsonify(rules_array)
 
 
