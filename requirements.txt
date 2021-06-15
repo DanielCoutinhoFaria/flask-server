@@ -5,4 +5,4 @@ numpy
 gunicorn
 joblib
 mysql.connector
-_tree
+sklearn.tree
