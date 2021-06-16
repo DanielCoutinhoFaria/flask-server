@@ -28,7 +28,7 @@ query_indicator_electricidade = "SELECT indicator_table.indicator_name, indicato
 cursor.execute(query_indicator_electricidade)
 result_indicator_electricidade = cursor.fetchall()
 
-dados = pd.DataFrame((result_indicator_electricidade), columns=[
+data = pd.DataFrame((result_indicator_electricidade), columns=[
                      'indicator_name', 'indicator_type', 'units', 'sub_type', 'input', 'value', 'date', 'city_name'])
 
 
