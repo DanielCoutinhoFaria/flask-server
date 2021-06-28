@@ -5,6 +5,4 @@ gunicorn
 joblib
 mysql.connector
 scikit-learn
-tensorflow
-matplotlib
-seaborn
+
