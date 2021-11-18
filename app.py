@@ -56,9 +56,7 @@ def series_to_supervised(data, timesteps, multisteps, dropnan=False, fill_value=
         new.dropna(inplace=True)
     return new.values
 
-
-
-bins = [0, 91, 183, 275, 366]
+'''bins = [0, 91, 183, 275, 366]
 labels=['Inverno', 'Primavera', 'Verão', 'Outono']
 
 for i in data.indicator_name.unique():
@@ -122,6 +120,7 @@ dados_forecast = dados_con_analitico[['date','azoto_total em Efluente Tratado','
 scaler = MinMaxScaler(feature_range=(-1,1))
 
 dados_super = series_to_supervised(dados_forecast.loc[:,dados_forecast.columns != 'date'], 6, 3, dropnan = True)
+'''
 
 
 @app.route('/dados')
