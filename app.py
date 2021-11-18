@@ -247,7 +247,7 @@ def predict_future_ph_gui():
 
     scaler = MinMaxScaler(feature_range=(-1,1))
 
-    dados_super = series_to_supervised(dados_forecast.loc[:,dados_forecast.columns != 'date'], 1, 2, dropnan = True)   
+    dados_super = series_to_supervised(dados_forecast.loc[:,dados_forecast.columns != 'date'], 7, 2, dropnan = True)   
         
 
     model = load_model('phEntrada_Serzedo.h5', compile=False)
@@ -257,7 +257,7 @@ def predict_future_ph_gui():
     scaler = scaler.fit(dados_f)
     df_scaled = scaler.transform(dados_f)
 
-    df_scaled = df_scaled.reshape(-1,1,2)
+    df_scaled = df_scaled.reshape(-1,7,2)
     forecast_period_dates = pd.date_range(list(df_dates)[-1], periods=2 + 1, freq='7D').tolist()
     forecast = model.predict(df_scaled[-1:])
     final_forecast = list()
