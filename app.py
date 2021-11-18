@@ -195,7 +195,7 @@ def predict_future():
 
 
 @app.route('/prediction_next_days_ph_gui')
-def predict_future():
+def predict_future_ph_gui():
     @after_this_request
     def add_header(response):
         response.headers['Access-Control-Allow-Origin'] = '*'
@@ -260,7 +260,7 @@ def predict_future():
     df_scaled = scaler.transform(dados_f)
 
     df_scaled = df_scaled.reshape(-1,1,2)
-    forecast_period_dates = pd.date_range(list(df_dates)[-1], periods=3 + 1, freq='7D').tolist()
+    forecast_period_dates = pd.date_range(list(df_dates)[-1], periods=2 + 1, freq='7D').tolist()
     forecast = model.predict(df_scaled[-1:])
     final_forecast = list()
     for i in forecast[0]:
@@ -306,7 +306,7 @@ def prediction_next_days_values():
 
 
 @app.route('/prediction_next_days_values_ph_gui')
-def prediction_next_days_values():
+def prediction_next_days_values_ph_gui():
     @after_this_request
     def add_header(response):
         response.headers['Access-Control-Allow-Origin'] = '*'
