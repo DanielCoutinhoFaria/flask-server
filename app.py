@@ -67,56 +67,6 @@ def series_to_supervised(data, timesteps, multisteps, dropnan=False, fill_value=
     return new.values
 
 
-datasets = []
-for x in data.indicator_name.unique():
-    d = data[data.indicator_name == x]
-    for i in d.sub_type.unique():
-        dados_x = d[d.sub_type == i].copy()
-        dados_x.date = pd.to_datetime(dados_x.date).dt.date
-        dados_x.date = pd.to_datetime(dados_x.date)
-
-        dados_x.date = dados_x.date.dt.to_period('W').apply(lambda r: r.start_time)
-        dados_x = dados_x.groupby([dados_x['date'],dados_x['indicator_name'],dados_x['sub_type'], dados_x['units']]).aggregate('mean').reset_index()
-        #dados_x = dados_x.groupby(['indicator_name','sub_type','units']).resample('', on='date').mean().reset_index().sort_values(by='date')
-
-        dados_x = dados_x.loc[dados_x.notnull().all(axis=1).cummax()]
-        nan = dados_x[dados_x.isnull().any(1)]
-        if len(nan) > 0:
-            idx = dados_x.loc[dados_x.date == nan.date.iloc[0]]
-            num_timesteps = 3
-            while (len(dados_x.loc[:idx.index[0]]) - 1) < num_timesteps:
-                dados_x.at[idx.index[0],'value'] = dados_x.loc[:idx.index[0]].mean()
-                nan = dados_x[dados_x.isnull().any(1)]
-                if len(nan) == 0:
-                    break
-                else:
-                    idx = dados_x.loc[dados_x.date == nan.date.iloc[0]]
-            while int(dados_x.value.isnull().sum()) > 0:
-                dados_x.value = dados_x.value.fillna(dados_x.value.rolling(num_timesteps).mean().shift())
-        datasets.append(dados_x)
-dados_final = pd.concat(datasets)
-
-dados_con_analitico = dados_final.copy()
-for i,p in dados_con_analitico.iterrows():
-    dados_con_analitico.loc[i, [p.indicator_name + " em " + p.sub_type]] = np.nan
-    dados_con_analitico.loc[i, [p.indicator_name + " em " + p.sub_type]] = p.value
-dados_con_analitico = dados_con_analitico.drop(columns=['value'])
-dados_con_analitico = dados_con_analitico.groupby('date').aggregate('mean').reset_index()
-for x in dados_con_analitico.columns:
-    dados_x = dados_con_analitico[x]
-    if dados_x.isnull().sum() > 0:
-        while int(dados_x.isnull().sum()) > 0:
-                dados_x = dados_x.fillna(dados_x.rolling(3).mean().shift())
-        dados_con_analitico[x] = dados_x
-dados_forecast = dados_con_analitico[['date','azoto_total em Efluente Tratado','cqo em Efluente Tratado','amonia em Efluente Tratado']]
-
-scaler = MinMaxScaler(feature_range=(-1,1))
-
-dados_super = series_to_supervised(dados_forecast.loc[:,dados_forecast.columns != 'date'], 6, 3, dropnan = True)   
-
-
-
-
 
 @app.route('/dados')
 def dados():
@@ -156,6 +106,54 @@ def predict_future():
     #if request.method == 'POST':
         #pred_weeks = [[request.form['weeks_pred']]]
         
+        
+    datasets = []
+    for x in data.indicator_name.unique():
+        d = data[data.indicator_name == x]
+        for i in d.sub_type.unique():
+            dados_x = d[d.sub_type == i].copy()
+            dados_x.date = pd.to_datetime(dados_x.date).dt.date
+            dados_x.date = pd.to_datetime(dados_x.date)
+
+            dados_x.date = dados_x.date.dt.to_period('W').apply(lambda r: r.start_time)
+            dados_x = dados_x.groupby([dados_x['date'],dados_x['indicator_name'],dados_x['sub_type'], dados_x['units']]).aggregate('mean').reset_index()
+            #dados_x = dados_x.groupby(['indicator_name','sub_type','units']).resample('', on='date').mean().reset_index().sort_values(by='date')
+
+            dados_x = dados_x.loc[dados_x.notnull().all(axis=1).cummax()]
+            nan = dados_x[dados_x.isnull().any(1)]
+            if len(nan) > 0:
+                idx = dados_x.loc[dados_x.date == nan.date.iloc[0]]
+                num_timesteps = 3
+                while (len(dados_x.loc[:idx.index[0]]) - 1) < num_timesteps:
+                    dados_x.at[idx.index[0],'value'] = dados_x.loc[:idx.index[0]].mean()
+                    nan = dados_x[dados_x.isnull().any(1)]
+                    if len(nan) == 0:
+                        break
+                    else:
+                        idx = dados_x.loc[dados_x.date == nan.date.iloc[0]]
+                while int(dados_x.value.isnull().sum()) > 0:
+                    dados_x.value = dados_x.value.fillna(dados_x.value.rolling(num_timesteps).mean().shift())
+            datasets.append(dados_x)
+    dados_final = pd.concat(datasets)
+
+    dados_con_analitico = dados_final.copy()
+    for i,p in dados_con_analitico.iterrows():
+        dados_con_analitico.loc[i, [p.indicator_name + " em " + p.sub_type]] = np.nan
+        dados_con_analitico.loc[i, [p.indicator_name + " em " + p.sub_type]] = p.value
+    dados_con_analitico = dados_con_analitico.drop(columns=['value'])
+    dados_con_analitico = dados_con_analitico.groupby('date').aggregate('mean').reset_index()
+    for x in dados_con_analitico.columns:
+        dados_x = dados_con_analitico[x]
+        if dados_x.isnull().sum() > 0:
+            while int(dados_x.isnull().sum()) > 0:
+                    dados_x = dados_x.fillna(dados_x.rolling(3).mean().shift())
+            dados_con_analitico[x] = dados_x
+    dados_forecast = dados_con_analitico[['date','azoto_total em Efluente Tratado','cqo em Efluente Tratado','amonia em Efluente Tratado']]
+
+    scaler = MinMaxScaler(feature_range=(-1,1))
+
+    dados_super = series_to_supervised(dados_forecast.loc[:,dados_forecast.columns != 'date'], 6, 3, dropnan = True)   
+        
 
     model = load_model('lstm_AT.h5')
     df_dates = dados_forecast.date
@@ -194,6 +192,106 @@ def predict_future():
     res = pd.DataFrame({'date_ori': g_original.date.astype(str), 'values_ori':g_original['azoto_total em Efluente Tratado'], 'pred_dates':prev_data.date.astype(str), 'pred_values': prev_data['azoto_total_em_Efluente_Tratado_pred']})
     return Response(res.round(3).to_json(orient="records"), mimetype='application/json')
 
+
+
+@app.route('/prediction_next_days_ph_gui')
+def predict_future():
+    @after_this_request
+    def add_header(response):
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response 
+    #if request.method == 'POST':
+        #pred_weeks = [[request.form['weeks_pred']]]
+        
+        
+    datasets = []
+    for x in data_ph.indicator_name.unique():
+        d = data_ph[data_ph.indicator_name == x]
+        for i in d.sub_type.unique():
+            dados_x = d[d.sub_type == i].copy()
+            dados_x.date = pd.to_datetime(dados_x.date).dt.date
+            dados_x.date = pd.to_datetime(dados_x.date)
+
+            dados_x.date = dados_x.date.dt.to_period('W').apply(lambda r: r.start_time)
+            dados_x = dados_x.groupby([dados_x['date'],dados_x['indicator_name'],dados_x['sub_type'], dados_x['units']]).aggregate('mean').reset_index()
+            #dados_x = dados_x.groupby(['indicator_name','sub_type','units']).resample('', on='date').mean().reset_index().sort_values(by='date')
+
+            dados_x = dados_x.loc[dados_x.notnull().all(axis=1).cummax()]
+            nan = dados_x[dados_x.isnull().any(1)]
+            if len(nan) > 0:
+                idx = dados_x.loc[dados_x.date == nan.date.iloc[0]]
+                num_timesteps = 3
+                while (len(dados_x.loc[:idx.index[0]]) - 1) < num_timesteps:
+                    dados_x.at[idx.index[0],'value'] = dados_x.loc[:idx.index[0]].mean()
+                    nan = dados_x[dados_x.isnull().any(1)]
+                    if len(nan) == 0:
+                        break
+                    else:
+                        idx = dados_x.loc[dados_x.date == nan.date.iloc[0]]
+                while int(dados_x.value.isnull().sum()) > 0:
+                    dados_x.value = dados_x.value.fillna(dados_x.value.rolling(num_timesteps).mean().shift())
+            datasets.append(dados_x)
+    dados_final = pd.concat(datasets)
+
+    dados_con_analitico = dados_final.copy()
+    for i,p in dados_con_analitico.iterrows():
+        dados_con_analitico.loc[i, [p.indicator_name + " em " + p.sub_type]] = np.nan
+        dados_con_analitico.loc[i, [p.indicator_name + " em " + p.sub_type]] = p.value
+    dados_con_analitico = dados_con_analitico.drop(columns=['value'])
+    dados_con_analitico = dados_con_analitico.groupby('date').aggregate('mean').reset_index()
+    for x in dados_con_analitico.columns:
+        dados_x = dados_con_analitico[x]
+        if dados_x.isnull().sum() > 0:
+            while int(dados_x.isnull().sum()) > 0:
+                    dados_x = dados_x.fillna(dados_x.rolling(3).mean().shift())
+            dados_con_analitico[x] = dados_x
+    dados_forecast = dados_con_analitico[['date','ph em Afluente Bruto']]
+
+    scaler = MinMaxScaler(feature_range=(-1,1))
+
+    dados_super = series_to_supervised(dados_forecast.loc[:,dados_forecast.columns != 'date'], 1, 2, dropnan = True)   
+        
+
+    model = load_model('phEntrada_Serzedo.h5')
+    df_dates = dados_forecast.date
+    dados_f = dados_super[:, :-2]
+    scaler = MinMaxScaler(feature_range=(-1,1))
+    scaler = scaler.fit(dados_f)
+    df_scaled = scaler.transform(dados_f)
+
+    df_scaled = df_scaled.reshape(-1,1,2)
+    forecast_period_dates = pd.date_range(list(df_dates)[-1], periods=3 + 1, freq='7D').tolist()
+    forecast = model.predict(df_scaled[-1:])
+    final_forecast = list()
+    for i in forecast[0]:
+        forecast_copies = np.repeat([[i]], dados_f.shape[1], axis=-1)
+        y_pred_future = scaler.inverse_transform(forecast_copies)[:,0]
+        final_forecast.append(y_pred_future)
+    forecast_dates = []
+    for time_i in forecast_period_dates:
+        forecast_dates.append(time_i.date())
+    forecast_dates.pop(0)
+
+    df_forecast = pd.DataFrame({'date':np.ravel(forecast_dates), 'ph_em_Afluente_Bruto_pred': np.ravel(final_forecast)})
+    df_forecast['date']=pd.to_datetime(df_forecast['date'])
+
+    original = dados_forecast[['date', 'ph em Afluente Bruto']]
+    original['date']=pd.to_datetime(original['date'])
+    #original = original.loc[original['date'] >= '2020-4-1']
+    original = original.iloc[-8:]
+
+    global prev_data, g_original
+    prev_data = df_forecast
+
+    g_original = original
+    #filename = 'graph.png'
+    #return send_file(filename, mimetype='image/png')
+    res = pd.DataFrame({'date_ori': g_original.date.astype(str), 'values_ori':g_original['ph em Afluente Bruto'], 'pred_dates':prev_data.date.astype(str), 'pred_values': prev_data['ph_em_Afluente_Bruto_pred']})
+    return Response(res.round(3).to_json(orient="records"), mimetype='application/json')
+
+
+
+
 @app.route('/prediction_next_days_values')
 def prediction_next_days_values():
     @after_this_request
@@ -205,6 +303,20 @@ def prediction_next_days_values():
     #prediction_values.sort_values(by=['pred_date'], inplace=True, ascending=False)
     prediction_values["pred_date"] = prediction_values["pred_date"].astype(str)
     return Response(prediction_values.to_json(orient="records"), mimetype='application/json')
+
+
+@app.route('/prediction_next_days_values_ph_gui')
+def prediction_next_days_values():
+    @after_this_request
+    def add_header(response):
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
+    prediction_values = {'pred_date':prev_data['date'], 'pred_val':prev_data['ph_em_Afluente_Bruto_pred']}  
+    prediction_values = pd.DataFrame(prediction_values)
+    #prediction_values.sort_values(by=['pred_date'], inplace=True, ascending=False)
+    prediction_values["pred_date"] = prediction_values["pred_date"].astype(str)
+    return Response(prediction_values.to_json(orient="records"), mimetype='application/json')
+
 
 
 @app.route('/insert_data',  methods=['POST'])
