@@ -37,7 +37,6 @@ data = data[data.indicator_type == 'Controlo Analitico']
 data = data.loc[((data.sub_type == 'Afluente Bruto') | (data.sub_type == 'Efluente Tratado'))]
 data.date = pd.to_datetime(data.date).dt.date
 data.date = pd.to_datetime(data.date)
-display(data)
 
 def series_to_supervised(data, timesteps, multisteps, dropnan=False, fill_value=0):
     data = pd.DataFrame(data)
@@ -226,7 +225,7 @@ def insert_data():
         final_csv.rename(columns=final_csv.iloc[0], inplace=True)
         final_csv = final_csv.iloc[1:, :]
         final_csv.dropna(inplace=True)
-        display(final_csv)
+        #display(final_csv)
         
     
     return (str('ola dani'))
