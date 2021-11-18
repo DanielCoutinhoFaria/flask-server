@@ -56,21 +56,6 @@ def series_to_supervised(data, timesteps, multisteps, dropnan=False, fill_value=
         new.dropna(inplace=True)
     return new.values
 
-'''bins = [0, 91, 183, 275, 366]
-labels=['Inverno', 'Primavera', 'Verão', 'Outono']
-
-for i in data.indicator_name.unique():
-    dados_x = data[data.indicator_name == i]
-    for p, o in dados_x.groupby("sub_type"):
-        o.date = pd.to_datetime(o.date).dt.date
-        o.date = pd.to_datetime(o.date)
-        o = o.groupby('sub_type').resample('7D', on='date').mean().reset_index().sort_values(by='date')
-        datas_falta = pd.date_range(start = o.date.min(), end = o.date.max(), freq="7D").difference(o.date)
-        datas_em_falta = dados_x.reindex(datas_falta, fill_value = 0).reset_index()
-        datas_em_falta.drop(columns=['date'], inplace = True)
-        datas_em_falta.rename(columns={'index': 'date'}, inplace = True)
-        for o, p in datas_em_falta.iterrows():
-            data = data.append({ 'indicator_name': i, 'sub_type': p, 'date':p.date, 'value':p.value}, ignore_index=True)
 datasets = []
 for x in data.indicator_name.unique():
     d = data[data.indicator_name == x]
@@ -112,15 +97,12 @@ for x in dados_con_analitico.columns:
         while int(dados_x.isnull().sum()) > 0:
                 dados_x = dados_x.fillna(dados_x.rolling(3).mean().shift())
         dados_con_analitico[x] = dados_x
-doy = dados_con_analitico.date.dt.dayofyear
-dados_con_analitico['estacao_ano'] = pd.cut(doy + 11 - 366*(doy > 355), bins=bins, labels=labels)
-dados_con_analitico['estacao_ano_numeric'] = dados_con_analitico.estacao_ano.cat.codes
 dados_forecast = dados_con_analitico[['date','azoto_total em Efluente Tratado','cqo em Efluente Tratado','amonia em Efluente Tratado']]
 
 scaler = MinMaxScaler(feature_range=(-1,1))
 
 dados_super = series_to_supervised(dados_forecast.loc[:,dados_forecast.columns != 'date'], 6, 3, dropnan = True)
-'''
+
 
 
 @app.route('/dados')
