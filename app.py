@@ -66,7 +66,8 @@ def series_to_supervised(data, timesteps, multisteps, dropnan=False, fill_value=
         new.dropna(inplace=True)
     return new.values
 
-
+def rmse(y_true, y_pred):
+    return tf.keras.backend.sqrt(tf.keras.backend.mean(tf.keras.backend.square(y_pred - y_true)))
 
 @app.route('/dados')
 def dados():
@@ -252,7 +253,7 @@ def predict_future_ph_gui():
     dados_super = series_to_supervised(dados_forecast.loc[:,dados_forecast.columns != 'date'], 1, 2, dropnan = True)   
         
 
-    model = load_model('phEntrada_Serzedo.h5')
+    model = load_model('phEntrada_Serzedo.h5', custom_objects={'rmse': rmse})
     df_dates = dados_forecast.date
     dados_f = dados_super[:, :-2]
     scaler = MinMaxScaler(feature_range=(-1,1))
