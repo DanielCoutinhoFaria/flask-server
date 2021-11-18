@@ -15,11 +15,11 @@ def hello_world():
 
 
 mydb = mysql.connector.connect(
-    host="freedb.tech",
-    port=3306,
-    user="freedbtech_etardata",
-    passwd="etardata2021",
-    database="freedbtech_etardatadb"
+    host="mysql-58402-0.cloudclusters.net",
+    port=18473,
+    user="admin",
+    passwd="uQj7aUc0",
+    database="pamwater"
 )
 
 cursor = mydb.cursor()
