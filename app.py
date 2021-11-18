@@ -32,11 +32,21 @@ query_indicator_electricidade = "SELECT indicator_table.indicator_name, indicato
 cursor.execute(query_indicator_electricidade)
 result_indicator_electricidade = cursor.fetchall()
 
-data = pd.DataFrame((result_indicator_electricidade),columns=['indicator_name','indicator_type','units','sub_type','input','value','date','city_name'])
-data = data[data.indicator_type == 'Controlo Analitico']
-data = data.loc[((data.sub_type == 'Afluente Bruto') | (data.sub_type == 'Efluente Tratado'))]
+data_db = pd.DataFrame((result_indicator_electricidade),columns=['indicator_name','indicator_type','units','sub_type','input','value','date','city_name'])
+data_db = data_db[data_db.indicator_type == 'Controlo Analitico']
+
+data = data_db.loc[((data_db.sub_type == 'Afluente Bruto') | (data_db.sub_type == 'Efluente Tratado'))]
 data.date = pd.to_datetime(data.date).dt.date
 data.date = pd.to_datetime(data.date)
+
+data_ph = data_db.loc[(data_db.sub_type == 'Afluente Bruto') & (data_db.indicator_name == 'ph')]
+data_ph.date = pd.to_datetime(data_ph.date).dt.date
+data_ph.date = pd.to_datetime(data_ph.date)
+
+data_elec = data_db[data_db.indicator_type == 'Electricidade']
+data_elec = data_elec.loc[data_elec.indicator_name == 'total']
+data_elec.date = pd.to_datetime(data_elec.date).dt.date
+data_elec.date = pd.to_datetime(data_elec.date)
 
 def series_to_supervised(data, timesteps, multisteps, dropnan=False, fill_value=0):
     data = pd.DataFrame(data)
@@ -56,52 +66,7 @@ def series_to_supervised(data, timesteps, multisteps, dropnan=False, fill_value=
         new.dropna(inplace=True)
     return new.values
 
-datasets = []
-for x in data.indicator_name.unique():
-    d = data[data.indicator_name == x]
-    for i in d.sub_type.unique():
-        dados_x = d[d.sub_type == i].copy()
-        dados_x.date = pd.to_datetime(dados_x.date).dt.date
-        dados_x.date = pd.to_datetime(dados_x.date)
 
-        dados_x.date = dados_x.date.dt.to_period('W').apply(lambda r: r.start_time)
-        dados_x = dados_x.groupby([dados_x['date'],dados_x['indicator_name'],dados_x['sub_type'], dados_x['units']]).aggregate('mean').reset_index()
-        #dados_x = dados_x.groupby(['indicator_name','sub_type','units']).resample('', on='date').mean().reset_index().sort_values(by='date')
-
-        dados_x = dados_x.loc[dados_x.notnull().all(axis=1).cummax()]
-        nan = dados_x[dados_x.isnull().any(1)]
-        if len(nan) > 0:
-            idx = dados_x.loc[dados_x.date == nan.date.iloc[0]]
-            num_timesteps = 3
-            while (len(dados_x.loc[:idx.index[0]]) - 1) < num_timesteps:
-                dados_x.at[idx.index[0],'value'] = dados_x.loc[:idx.index[0]].mean()
-                nan = dados_x[dados_x.isnull().any(1)]
-                if len(nan) == 0:
-                    break
-                else:
-                    idx = dados_x.loc[dados_x.date == nan.date.iloc[0]]
-            while int(dados_x.value.isnull().sum()) > 0:
-                dados_x.value = dados_x.value.fillna(dados_x.value.rolling(num_timesteps).mean().shift())
-        datasets.append(dados_x)
-dados_final = pd.concat(datasets)
-
-dados_con_analitico = dados_final.copy()
-for i,p in dados_con_analitico.iterrows():
-    dados_con_analitico.loc[i, [p.indicator_name + " em " + p.sub_type]] = np.nan
-    dados_con_analitico.loc[i, [p.indicator_name + " em " + p.sub_type]] = p.value
-dados_con_analitico = dados_con_analitico.drop(columns=['value'])
-dados_con_analitico = dados_con_analitico.groupby('date').aggregate('mean').reset_index()
-for x in dados_con_analitico.columns:
-    dados_x = dados_con_analitico[x]
-    if dados_x.isnull().sum() > 0:
-        while int(dados_x.isnull().sum()) > 0:
-                dados_x = dados_x.fillna(dados_x.rolling(3).mean().shift())
-        dados_con_analitico[x] = dados_x
-dados_forecast = dados_con_analitico[['date','azoto_total em Efluente Tratado','cqo em Efluente Tratado','amonia em Efluente Tratado']]
-
-scaler = MinMaxScaler(feature_range=(-1,1))
-
-dados_super = series_to_supervised(dados_forecast.loc[:,dados_forecast.columns != 'date'], 6, 3, dropnan = True)
 
 
 
@@ -142,6 +107,58 @@ def predict_future():
         return response 
     #if request.method == 'POST':
         #pred_weeks = [[request.form['weeks_pred']]]
+        
+    datasets = []
+    for x in data.indicator_name.unique():
+        d = data[data.indicator_name == x]
+        for i in d.sub_type.unique():
+            dados_x = d[d.sub_type == i].copy()
+            dados_x.date = pd.to_datetime(dados_x.date).dt.date
+            dados_x.date = pd.to_datetime(dados_x.date)
+
+            dados_x.date = dados_x.date.dt.to_period('W').apply(lambda r: r.start_time)
+            dados_x = dados_x.groupby([dados_x['date'],dados_x['indicator_name'],dados_x['sub_type'], dados_x['units']]).aggregate('mean').reset_index()
+            #dados_x = dados_x.groupby(['indicator_name','sub_type','units']).resample('', on='date').mean().reset_index().sort_values(by='date')
+
+            dados_x = dados_x.loc[dados_x.notnull().all(axis=1).cummax()]
+            nan = dados_x[dados_x.isnull().any(1)]
+            if len(nan) > 0:
+                idx = dados_x.loc[dados_x.date == nan.date.iloc[0]]
+                num_timesteps = 3
+                while (len(dados_x.loc[:idx.index[0]]) - 1) < num_timesteps:
+                    dados_x.at[idx.index[0],'value'] = dados_x.loc[:idx.index[0]].mean()
+                    nan = dados_x[dados_x.isnull().any(1)]
+                    if len(nan) == 0:
+                        break
+                    else:
+                        idx = dados_x.loc[dados_x.date == nan.date.iloc[0]]
+                while int(dados_x.value.isnull().sum()) > 0:
+                    dados_x.value = dados_x.value.fillna(dados_x.value.rolling(num_timesteps).mean().shift())
+            datasets.append(dados_x)
+    dados_final = pd.concat(datasets)
+
+    dados_con_analitico = dados_final.copy()
+    for i,p in dados_con_analitico.iterrows():
+        dados_con_analitico.loc[i, [p.indicator_name + " em " + p.sub_type]] = np.nan
+        dados_con_analitico.loc[i, [p.indicator_name + " em " + p.sub_type]] = p.value
+    dados_con_analitico = dados_con_analitico.drop(columns=['value'])
+    dados_con_analitico = dados_con_analitico.groupby('date').aggregate('mean').reset_index()
+    for x in dados_con_analitico.columns:
+        dados_x = dados_con_analitico[x]
+        if dados_x.isnull().sum() > 0:
+            while int(dados_x.isnull().sum()) > 0:
+                    dados_x = dados_x.fillna(dados_x.rolling(3).mean().shift())
+            dados_con_analitico[x] = dados_x
+    dados_forecast = dados_con_analitico[['date','azoto_total em Efluente Tratado','cqo em Efluente Tratado','amonia em Efluente Tratado']]
+
+    scaler = MinMaxScaler(feature_range=(-1,1))
+
+    dados_super = series_to_supervised(dados_forecast.loc[:,dados_forecast.columns != 'date'], 6, 3, dropnan = True)   
+        
+        
+        
+        
+        
 
     model = load_model('lstm_AT.h5')
     df_dates = dados_forecast.date
