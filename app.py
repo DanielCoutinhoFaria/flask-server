@@ -395,7 +395,6 @@ def predict_future_elec_tot_gui():
     for time_i in forecast_period_dates:
         forecast_dates.append(time_i.date())
     forecast_dates.pop(0)
-    display(final_forecast)
     df_forecast = pd.DataFrame({'date':np.ravel(forecast_dates), 'electricidade_total_pred': np.ravel(final_forecast)})
     df_forecast['date']=pd.to_datetime(df_forecast['date'])
 
