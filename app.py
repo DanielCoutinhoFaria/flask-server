@@ -9,6 +9,8 @@ from tensorflow.keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
 from flask import send_file
 from datetime import datetime
+from tensorflow.keras.models import model_from_json
+
 
 app = Flask(__name__)
 
