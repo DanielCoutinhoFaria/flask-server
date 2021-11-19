@@ -33,6 +33,7 @@ cursor.execute(query_indicator_electricidade)
 result_indicator_electricidade = cursor.fetchall()
 
 data_db = pd.DataFrame((result_indicator_electricidade),columns=['indicator_name','indicator_type','units','sub_type','input','value','date','city_name'])
+data_db_elec = data_db[data_db.indicator_type == 'Electricidade']
 data_db = data_db[data_db.indicator_type == 'Controlo Analitico']
 
 data = data_db.loc[((data_db.sub_type == 'Afluente Bruto') | (data_db.sub_type == 'Efluente Tratado'))]
@@ -43,8 +44,7 @@ data_ph = data_db.loc[(data_db.sub_type == 'Afluente Bruto') & (data_db.indicato
 data_ph.date = pd.to_datetime(data_ph.date).dt.date
 data_ph.date = pd.to_datetime(data_ph.date)
 
-data_elec = data_db[data_db.indicator_type == 'Electricidade']
-data_elec = data_elec.loc[data_elec.indicator_name == 'total']
+data_elec = data_db_elec.loc[(data_db_elec.indicator_name == 'total') & (data_db_elec.city_name == 'Guimaraes')]
 data_elec.date = pd.to_datetime(data_elec.date).dt.date
 data_elec.date = pd.to_datetime(data_elec.date)
 
@@ -297,6 +297,121 @@ def predict_future_ph_gui():
     return Response(res.round(3).to_json(orient="records"), mimetype='application/json')
 
 
+@app.route('/prediction_next_days_elec_tot_gui')
+def predict_future_elec_tot_gui():
+    @after_this_request
+    def add_header(response):
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response 
+    #if request.method == 'POST':
+        #pred_weeks = [[request.form['weeks_pred']]]
+        
+        
+    datasets = []
+    for x in data_elec.indicator_name.unique():
+        d = data_elec[data_elec.indicator_name == x]
+        for i in d.sub_type.unique():
+            dados_x = d[d.sub_type == i].copy()
+            dados_x.date = pd.to_datetime(dados_x.date).dt.date
+            dados_x.date = pd.to_datetime(dados_x.date)
+
+            dados_x.date = dados_x.date.dt.to_period('D').apply(lambda r: r.start_time)
+            dados_x = dados_x.groupby([dados_x['date'],dados_x['indicator_name'],dados_x['sub_type'], dados_x['units']]).aggregate('mean').reset_index()
+            #dados_x = dados_x.groupby(['indicator_name','sub_type','units']).resample('', on='date').mean().reset_index().sort_values(by='date')
+
+            dados_x = dados_x.loc[dados_x.notnull().all(axis=1).cummax()]
+            nan = dados_x[dados_x.isnull().any(1)]
+            if len(nan) > 0:
+                idx = dados_x.loc[dados_x.date == nan.date.iloc[0]]
+                num_timesteps = 3
+                while (len(dados_x.loc[:idx.index[0]]) - 1) < num_timesteps:
+                    dados_x.at[idx.index[0],'value'] = dados_x.loc[:idx.index[0]].mean()
+                    nan = dados_x[dados_x.isnull().any(1)]
+                    if len(nan) == 0:
+                        break
+                    else:
+                        idx = dados_x.loc[dados_x.date == nan.date.iloc[0]]
+                while int(dados_x.value.isnull().sum()) > 0:
+                    dados_x.value = dados_x.value.fillna(dados_x.value.rolling(num_timesteps).mean().shift())
+            datasets.append(dados_x)
+    dados_final = pd.concat(datasets)
+
+    dados_con_analitico = dados_final.copy()
+    for i,p in dados_con_analitico.iterrows():
+        dados_con_analitico.loc[i, ["Electricidade " + p.indicator_name]] = np.nan
+        dados_con_analitico.loc[i, ["Electricidade " + p.indicator_name]] = p.value
+    dados_con_analitico = dados_con_analitico.drop(columns=['value'])
+    dados_con_analitico = dados_con_analitico.groupby('date').aggregate('mean').reset_index()
+    for x in dados_con_analitico.columns:
+        dados_x = dados_con_analitico[x]
+        if dados_x.isnull().sum() > 0:
+            while int(dados_x.isnull().sum()) > 0:
+                    dados_x = dados_x.fillna(dados_x.rolling(3).mean().shift())
+            dados_con_analitico[x] = dados_x
+    dados_forecast = dados_con_analitico[['date','Electricidade total']]
+
+    scaler = MinMaxScaler(feature_range=(-1,1))
+
+    dados_super = series_to_supervised(dados_forecast.loc[:,dados_forecast.columns != 'date'], 14, 1, dropnan = True)   
+
+
+
+    json_file = open('EletricididadeTotalSerzedo.json', 'r')
+    loaded_model_json = json_file.read()
+    json_file.close()
+    model = model_from_json(loaded_model_json)
+
+    df_dates = dados_forecast.date
+    dados_f = dados_super[:, :-1]
+    scaler = MinMaxScaler(feature_range=(-1,1))
+    scaler = scaler.fit(dados_f)
+    df_scaled = scaler.transform(dados_f)
+
+    df_scaled = df_scaled.reshape(-1,14,1)
+    forecast_period_dates = pd.date_range(list(df_dates)[-1], periods=3 + 1, freq='D').tolist()
+    forecast = model.predict(df_scaled[-1:])
+
+    forecast_scaled = list()
+    forecast_scaled.append(forecast[0][0])
+    df_scaled = np.append(df_scaled, forecast)
+    second_pred = df_scaled[-14:].reshape(-1,14,1)
+    forecast = model.predict(second_pred)
+    forecast_scaled.append(forecast[0][0])
+
+    df_scaled= np.append(df_scaled, forecast)
+    third_pred = df_scaled[-14:].reshape(-1,14,1)
+    forecast = model.predict(third_pred)
+    forecast_scaled.append(forecast[0][0])
+
+    final_forecast = list()
+
+    for i in forecast_scaled:
+        forecast_copies = np.repeat([[i]], dados_f.shape[1], axis=-1)
+        y_pred_future = scaler.inverse_transform(forecast_copies)[:,0]
+        final_forecast.append(y_pred_future)
+    forecast_dates = []
+    for time_i in forecast_period_dates:
+        forecast_dates.append(time_i.date())
+    forecast_dates.pop(0)
+    display(final_forecast)
+    df_forecast = pd.DataFrame({'date':np.ravel(forecast_dates), 'electricidade_total_pred': np.ravel(final_forecast)})
+    df_forecast['date']=pd.to_datetime(df_forecast['date'])
+
+    original = dados_forecast[['date', 'Electricidade total']]
+    original['date']=pd.to_datetime(original['date'])
+    #original = original.loc[original['date'] >= '2020-4-1']
+    original = original.iloc[-8:]
+
+    global prev_data, g_original
+    prev_data = df_forecast
+
+    g_original = original
+    #filename = 'graph.png'
+    #return send_file(filename, mimetype='image/png')
+    res = pd.DataFrame({'date_ori': g_original.date.astype(str), 'values_ori':g_original['Electricidade total'], 'pred_dates':prev_data.date.astype(str), 'pred_values': prev_data['electricidade_total_pred']})
+    return Response(res.round(3).to_json(orient="records"), mimetype='application/json')
+
+
 
 
 @app.route('/prediction_next_days_values')
@@ -324,6 +439,19 @@ def prediction_next_days_values_ph_gui():
     prediction_values["pred_date"] = prediction_values["pred_date"].astype(str)
     return Response(prediction_values.to_json(orient="records"), mimetype='application/json')
 
+
+
+@app.route('/prediction_next_days_values_elec_tot_gui')
+def prediction_next_days_values_elec_tot_gui():
+    @after_this_request
+    def add_header(response):
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
+    prediction_values = {'pred_date':prev_data['date'], 'pred_val':prev_data['electricidade_total_pred']}  
+    prediction_values = pd.DataFrame(prediction_values)
+    #prediction_values.sort_values(by=['pred_date'], inplace=True, ascending=False)
+    prediction_values["pred_date"] = prediction_values["pred_date"].astype(str)
+    return Response(prediction_values.to_json(orient="records"), mimetype='application/json')
 
 
 @app.route('/insert_data',  methods=['POST'])
