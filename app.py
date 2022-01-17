@@ -21,10 +21,10 @@ def hello_world():
 
 
 mydb = mysql.connector.connect(
-    host="mysql-58402-0.cloudclusters.net",
-    port=18473,
+    host="mysql-66431-0.cloudclusters.net",
+    port=19104,
     user="admin",
-    passwd="uQj7aUc0",
+    passwd="bdOaNziA",
     database="pamwater"
 )
 
@@ -204,7 +204,7 @@ def predict_future_ph_gui():
         #pred_weeks = [[request.form['weeks_pred']]]
         
         
-    datasets = []
+    ''' datasets = []
     for x in data_ph.indicator_name.unique():
         d = data_ph[data_ph.indicator_name == x]
         for i in d.sub_type.unique():
@@ -244,8 +244,9 @@ def predict_future_ph_gui():
         if dados_x.isnull().sum() > 0:
             while int(dados_x.isnull().sum()) > 0:
                     dados_x = dados_x.fillna(dados_x.rolling(3).mean().shift())
-            dados_con_analitico[x] = dados_x
-    dados_forecast = dados_con_analitico[['date','ph em Afluente Bruto']]
+            dados_con_analitico[x] = dados_x '''
+    
+    dados_forecast = pd.read_csv('ph_entrada_without_data_augmentation_and_year.csv')
 
     scaler = MinMaxScaler(feature_range=(-1,1))
 
@@ -358,10 +359,12 @@ def predict_future_elec_tot_gui():
 
 
 
-    json_file = open('EletricididadeTotalSerzedo.json', 'r')
+    '''json_file = open('EletricididadeTotalSerzedo.json', 'r')
     loaded_model_json = json_file.read()
     json_file.close()
-    model = model_from_json(loaded_model_json)
+    model = model_from_json(loaded_model_json)'''
+    
+    model = load_model('energy.h5', compile=False)
 
     df_dates = dados_forecast.date
     dados_f = dados_super[:, :-1]
