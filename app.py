@@ -403,7 +403,7 @@ def predict_future_elec_tot_gui():
     df_forecast['date']=pd.to_datetime(df_forecast['date'])
     
     #PROVISORIO
-    df_forecast["electricidade_total_pred"].replace({898.848: 7134,35, 644.988: 7030,67, 70.951: 6956,14}, inplace=True)
+    #df_forecast["electricidade_total_pred"].replace({898.848: 7134,35, 644.988: 7030,67, 70.951: 6956,14}, inplace=True)
 
     original = dados_forecast[['date', 'Electricidade total']]
     original['date']=pd.to_datetime(original['date'])
