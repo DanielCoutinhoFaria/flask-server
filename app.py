@@ -438,7 +438,7 @@ def prediction_next_days_values_ph_gui():
     def add_header(response):
         response.headers['Access-Control-Allow-Origin'] = '*'
         return response
-    prediction_values = {'pred_date':prev_data['date'], 'pred_val':prev_data['ph_em_Afluente_Bruto_pred']}  
+    prediction_values = {'pred_date':prev_data['date'], 'pred_val':prev_data['value_pred']}  
     prediction_values = pd.DataFrame(prediction_values)
     #prediction_values.sort_values(by=['pred_date'], inplace=True, ascending=False)
     prediction_values["pred_date"] = prediction_values["pred_date"].astype(str)
