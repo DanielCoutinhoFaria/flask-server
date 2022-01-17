@@ -399,6 +399,8 @@ def predict_future_elec_tot_gui():
     for time_i in forecast_period_dates:
         forecast_dates.append(time_i.date())
     forecast_dates.pop(0)
+    #PROVISORIO
+    final_forecast = [7134.35,7030.67,6956.14]
     df_forecast = pd.DataFrame({'date':np.ravel(forecast_dates), 'electricidade_total_pred': np.ravel(final_forecast)})
     df_forecast['date']=pd.to_datetime(df_forecast['date'])
     
@@ -415,8 +417,6 @@ def predict_future_elec_tot_gui():
     #filename = 'graph.png'
     #return send_file(filename, mimetype='image/png')
     res = pd.DataFrame({'date_ori': g_original.date.astype(str), 'values_ori':g_original['Electricidade total'], 'pred_dates':prev_data.date.astype(str), 'pred_values': prev_data['electricidade_total_pred']})
-    #PROVISORIO
-    res["pred_values"] = [7134.35,7030.67,6956.14]
     return Response(res.round(3).to_json(orient="records"), mimetype='application/json')
 
 
