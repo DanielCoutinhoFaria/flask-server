@@ -365,7 +365,7 @@ def predict_future_elec_tot_gui():
     json_file.close()
     model = model_from_json(loaded_model_json)'''
     
-    model = load_model('energy.h5')
+    model = load_model('energy.h5', compile=False)
 
     df_dates = dados_forecast.date
     dados_f = dados_super[:, :-1]
