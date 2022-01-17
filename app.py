@@ -283,10 +283,10 @@ def predict_future_ph_gui():
         forecast_dates.append(time_i.date())
     forecast_dates.pop(0)
 
-    df_forecast = pd.DataFrame({'date':np.ravel(forecast_dates), 'ph_em_Afluente_Bruto_pred': np.ravel(final_forecast)})
+    df_forecast = pd.DataFrame({'date':np.ravel(forecast_dates), 'value_pred': np.ravel(final_forecast)})
     df_forecast['date']=pd.to_datetime(df_forecast['date'])
 
-    original = dados_forecast[['date', 'ph em Afluente Bruto']]
+    original = dados_forecast[['date', 'value']]
     original['date']=pd.to_datetime(original['date'])
     #original = original.loc[original['date'] >= '2020-4-1']
     original = original.iloc[-8:]
@@ -297,7 +297,7 @@ def predict_future_ph_gui():
     g_original = original
     #filename = 'graph.png'
     #return send_file(filename, mimetype='image/png')
-    res = pd.DataFrame({'date_ori': g_original.date.astype(str), 'values_ori':g_original['ph em Afluente Bruto'], 'pred_dates':prev_data.date.astype(str), 'pred_values': prev_data['ph_em_Afluente_Bruto_pred']})
+    res = pd.DataFrame({'date_ori': g_original.date.astype(str), 'values_ori':g_original['value'], 'pred_dates':prev_data.date.astype(str), 'pred_values': prev_data['value_pred']})
     return Response(res.round(3).to_json(orient="records"), mimetype='application/json')
 
 
