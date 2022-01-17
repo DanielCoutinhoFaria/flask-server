@@ -247,6 +247,7 @@ def predict_future_ph_gui():
             dados_con_analitico[x] = dados_x '''
     
     dados_forecast = pd.read_csv('ph_entrada_without_data_augmentation_and_year.csv')
+    dados_forecast.rename(columns={'timestep': 'date'}, inplace=True)
 
     scaler = MinMaxScaler(feature_range=(-1,1))
 
@@ -364,7 +365,7 @@ def predict_future_elec_tot_gui():
     json_file.close()
     model = model_from_json(loaded_model_json)'''
     
-    model = load_model('energy.h5', compile=False)
+    model = load_model('energy.h5')
 
     df_dates = dados_forecast.date
     dados_f = dados_super[:, :-1]
