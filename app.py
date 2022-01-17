@@ -263,7 +263,7 @@ def predict_future_ph_gui():
 
     print(df_scaled.shape)
     df_scaled = df_scaled.reshape(-1,21,1)
-    forecast_period_dates = pd.date_range(list(df_dates)[-1], periods=2 + 1, freq='1D').tolist()
+    forecast_period_dates = pd.date_range(list(df_dates)[-1], periods=2 + 1, freq='D').tolist()
     forecast = model.predict(df_scaled[-1:])
 
     forecast_scaled = list()
