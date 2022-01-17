@@ -416,7 +416,7 @@ def predict_future_elec_tot_gui():
     #return send_file(filename, mimetype='image/png')
     res = pd.DataFrame({'date_ori': g_original.date.astype(str), 'values_ori':g_original['Electricidade total'], 'pred_dates':prev_data.date.astype(str), 'pred_values': prev_data['electricidade_total_pred']})
     #PROVISORIO
-    res["pred_values"].replace({898.848: 7134.35, 644.988: 7030.67, 70.951: 6956.14}, inplace=True)
+    res["pred_values"] = [7134.35,7030.67,6956.14]
     return Response(res.round(3).to_json(orient="records"), mimetype='application/json')
 
 
