@@ -409,6 +409,9 @@ def predict_future_elec_tot_gui():
 
     global prev_data, g_original
     prev_data = df_forecast
+    
+    #PROVISORIO
+    prev_data["electricidade_total_pred"].replace({898.848: 7134,35, 644.988: 7030,67, 70.951: 6956,14}, inplace=True)
 
     g_original = original
     #filename = 'graph.png'
