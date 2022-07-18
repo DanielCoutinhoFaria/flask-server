@@ -16,14 +16,14 @@ app = Flask(__name__)
 
 @app.route('/')
 def hello_world():
-    return 'HELLO DANI'
+    return 'HELLO WORLD'
 
 
 mydb = mysql.connector.connect(
-    host="mysql-80831-0.cloudclusters.net",
-    port=19596,
+    host="mysql-83133-0.cloudclusters.net",
+    port=19516,
     user="admin",
-    passwd="PNba62vF",
+    passwd="VCuX56m5",
     database="pamwater"
 )
 
